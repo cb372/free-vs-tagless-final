@@ -1,4 +1,4 @@
-package free
+package common
 
 case class PhotoId(val value: String) extends AnyVal
 

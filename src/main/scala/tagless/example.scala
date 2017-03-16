@@ -1,4 +1,4 @@
-package free
+package tagless
 
 import common._
 
@@ -6,20 +6,16 @@ import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import cats.instances.future._
-
 /**
  * An example of executing a program using an interpreter
  */
 object Example extends App {
 
-  import Programs._
+  val prog = new Programs(FutureInterpreter)
   
   val future: Future[Photo] = 
-    saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
-      .foldMap(Interpreters.futureInterpreter)
+    prog.saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
   
   println(Await.result(future, atMost = Duration.Inf))
-
 
 }

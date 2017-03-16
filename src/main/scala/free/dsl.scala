@@ -1,5 +1,7 @@
 package free
 
+import common._
+
 import cats.free.Free
 
 /*

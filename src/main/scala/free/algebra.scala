@@ -1,5 +1,7 @@
 package free
 
+import common._
+
 /*
  * An algebra of primitive operations that we want to support
  *

@@ -1,11 +1,19 @@
 package free
 
+import common._
+
 import cats.~>
 
 import scala.concurrent.Future
 
 object Interpreters {
 
+  /**
+   * An example interpreter with `Future` as its effect.
+   *
+   * The interpreter is a natural transformation 
+   * from Algebra to some monad, in this case Future.
+   */
   val futureInterpreter = new (Algebra ~> Future) {
     override def apply[A](op: Algebra[A]): Future[A] = op match {
       case GenerateS3Key(id) => 
