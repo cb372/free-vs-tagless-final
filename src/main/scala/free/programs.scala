@@ -19,4 +19,10 @@ object Programs {
       content <- readContentFromS3(dynamoRecord.s3key)
     } yield Photo(dynamoRecord.id, dynamoRecord.createdBy, content)
 
+  def saveAndThenGetPhoto(id: PhotoId, createdBy: String, content: Array[Byte]): Op[Photo] =
+    for {
+      _ <- savePhoto(id, createdBy, content)
+      photo <- getPhoto(id)
+    } yield photo
+
 }
