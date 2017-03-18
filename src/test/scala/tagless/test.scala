@@ -12,7 +12,7 @@ class TaglessFinalTest extends FlatSpec with Matchers {
     s3: Map[S3Key, Array[Byte]]
   ) = new Algebra[Id] {
 
-    implicit def M = implicitly[Monad[Id]]
+    implicit def M = implicitly
 
     def getDynamoRecord(id: PhotoId) = dynamo(id)
     def readContentFromS3(key: S3Key) = s3(key)

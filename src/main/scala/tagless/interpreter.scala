@@ -3,45 +3,46 @@ package tagless
 import common._
 
 import cats.Monad
+import cats.data.OptionT
+import cats.instances.future._
+
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * An example interpreter with `Future` as its effect.
  */
-object FutureInterpreter extends Algebra[Future] {
+object FutureOfOptionInterpreter extends Algebra[FutureOfOption] {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-  import cats.instances.future._
+  implicit def M: Monad[FutureOfOption] = futureOfOptionMonad
 
-  implicit val M: Monad[Future] = implicitly
-
-  def generateS3Key(id: PhotoId): Future[S3Key] = {
+  def generateS3Key(id: PhotoId): FutureOfOption[S3Key] = {
     println("Generating S3 key")
-    Future.successful(S3Key(s"photos/$id"))
+    OptionT.pure(S3Key(s"photos/$id"))
   }
 
-  def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String): Future[DynamoRecord] = {
+  def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String): FutureOfOption[DynamoRecord] = {
     println("Inserting Dynamo record")
     // TODO write it to Dynamo
-    Future.successful(DynamoRecord(id, s3key, createdBy))
+    OptionT.pure(DynamoRecord(id, s3key, createdBy))
   }
 
-  def getDynamoRecord(id: PhotoId): Future[DynamoRecord] = {
+  def getDynamoRecord(id: PhotoId): FutureOfOption[DynamoRecord] = {
     println("Getting Dynamo record")
     // TODO look it up in Dynamo
-    Future.successful(DynamoRecord(id, S3Key("the S3 key"), "Chris"))
+    OptionT.pure(DynamoRecord(id, S3Key("the S3 key"), "Chris"))
   }
 
-  def writeContentToS3(key: S3Key, content: Array[Byte]): Future[Unit] = {
+  def writeContentToS3(key: S3Key, content: Array[Byte]): FutureOfOption[Unit] = {
     println("Writing to S3")
     // TODO write it to S3
-    Future.successful(())
+    OptionT.pure(())
   }
 
-  def readContentFromS3(key: S3Key): Future[Array[Byte]] = {
+  def readContentFromS3(key: S3Key): FutureOfOption[Array[Byte]] = {
     println("Reading from S3")
     // TODO read it from S3
-    Future.successful("yolo".getBytes)
+    OptionT.pure("yolo".getBytes)
   }
 
 }

@@ -11,11 +11,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 object Example extends App {
 
-  val prog = new Programs(FutureInterpreter)
+  val prog = new Programs(FutureOfOptionInterpreter)
   
-  val future: Future[Photo] = 
+  val future: FutureOfOption[Photo] = 
     prog.saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
   
-  println(Await.result(future, atMost = Duration.Inf))
+  println(Await.result(future.value, atMost = Duration.Inf))
 
 }

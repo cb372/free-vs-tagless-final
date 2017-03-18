@@ -15,11 +15,10 @@ object Example extends App {
 
   import Programs._
   
-  val future: Future[Photo] = 
+  val futureOfOption: FutureOfOption[Photo] = 
     saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
-      .foldMap(Interpreters.futureInterpreter)
+      .foldMap(Interpreters.futureOfOptionInterpreter)
   
-  println(Await.result(future, atMost = Duration.Inf))
-
+  println(Await.result(futureOfOption.value, atMost = Duration.Inf))
 
 }
