@@ -1,0 +1,18 @@
+val pres = REPLesent(80, 25, slideCounter=true, slideTotal=true, intp=$intp)
+import pres._
+
+import cats.~>
+import cats.data.OptionT
+import cats.free.Free
+import cats.implicits._
+
+import scala.concurrent._
+import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import common._
+import free._
+import free.Programs._
+import tagless._
+
+f

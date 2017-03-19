@@ -1,0 +1,342 @@
+| \gFree vs tagless final
+
+| Chris Birchall
+| @cbirchall
+
+---
+| \gOVO Energy
+
+| \r\*\!We're hiring!
+---
+Running example: photo storage service
+
+--
+Functionality
+
+- Retrieve a photo by ID
+    1. Read photo metadata from DynamoDB
+    2. Download photo content from S3
+
+--
+- Upload a photo 
+    1. Generate an S3 key based on photo's ID
+    2. Write photo metadata to DynamoDB 
+    3. Write photo content to S3
+
+---
+| Embedded DSL
+
+Make a DSL of primitive operations (read from Dynamo, write to S3, ...)
+
+--
+Write programs in this DSL
+
+--
+Interpret these programs to produce results and side effects
+
+---
+| Golden Rule of Functional Programming
+
+| \* Separate :sparkles: description :sparkles:  from :boom: execution :boom:
+---
+| Models
+
+```
+case class PhotoId(value: String) extends AnyVal
+
+case class S3Key(value: String) extends AnyVal
+
+case class Photo(id: PhotoId, createdBy: String, content: Array[Byte])
+
+case class DynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
+```
+---
+| Free
+
+--
+1. Define an algebra of your primitive operations
+
+--
+2. Define your DSL by lifting your algebra into Free monad
+
+--
+3. Write some programs in the DSL
+
+--
+4. Write an interpreter
+
+--
+5. Execute a program using the interpreter
+
+---
+| Algebra
+
+```
+sealed trait Algebra[A]
+
+case class GenerateS3Key(id: PhotoId) extends Algebra[S3Key]
+
+case class InsertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
+     extends Algebra[DynamoRecord]
+
+case class GetDynamoRecord(id: PhotoId) extends Algebra[DynamoRecord]
+
+case class WriteContentToS3(key: S3Key, content: Array[Byte])
+     extends Algebra[Unit]
+
+case class ReadContentFromS3(key: S3Key) extends Algebra[Array[Byte]]
+```
+
+---
+| DSL
+
+```
+type Op[A] = Free[Algebra, A]
+
+def generateS3Key(id: PhotoId): Op[S3Key] =
+  Free.liftF(GenerateS3Key(id))
+
+def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
+  : Op[DynamoRecord] = 
+  Free.liftF(InsertDynamoRecord(id, s3key, createdBy))
+
+def getDynamoRecord(id: PhotoId): Op[DynamoRecord] = 
+  Free.liftF(GetDynamoRecord(id))
+
+def writeContentToS3(key: S3Key, content: Array[Byte]): Op[Unit] = 
+  Free.liftF(WriteContentToS3(key, content))
+
+def readContentFromS3(key: S3Key): Op[Array[Byte]] = 
+  Free.liftF(ReadContentFromS3(key))
+```
+
+---
+| Write some programs
+
+```
+def getPhoto(id: PhotoId): Op[Photo] =
+  for {
+    dynamoRecord <- getDynamoRecord(id)
+    content <- readContentFromS3(dynamoRecord.s3key)
+  } yield Photo(dynamoRecord.id, dynamoRecord.createdBy, content)
+
+def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
+  : Op[Unit] =
+  for {
+    s3key <- generateS3Key(id)
+    _ <- insertDynamoRecord(id, s3key, createdBy)
+    _ <- writeContentToS3(s3key, content)
+  } yield ()
+```
+
+---
+| Programs compose
+
+```
+def saveAndThenGetPhoto(id: PhotoId, 
+                        createdBy: String, 
+                        content: Array[Byte]): Op[Photo] =
+  for {
+    _ <- savePhoto(id, createdBy, content)
+    photo <- getPhoto(id)
+  } yield photo
+```
+
+---
+| Interpreter
+
+```
+type FutureOfOption[A] = OptionT[Future, A]
+
+val futureOfOptionInterpreter = new (Algebra ~> FutureOfOption) {
+  override def apply[A](op: Algebra[A]): FutureOfOption[A] = op match {
+    case GenerateS3Key(id) => ...
+    
+    case InsertDynamoRecord(id, s3key, createdBy) => ...
+    
+    case GetDynamoRecord(id) =>
+      val result: Future[Option[DynamoRecord]] = dynamo.findById(id)
+      OptionT(result)
+    
+    case WriteContentToS3(key, content) => ...
+    
+    case ReadContentFromS3(key) => ...
+  }
+}
+```
+
+---
+| Interpret a program
+
+```
+val futureOfOption: FutureOfOption[Photo] = 
+  saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
+    .foldMap(free.Interpreters.futureOfOptionInterpreter)
+
+println("RESULT: " + Await.result(futureOfOption.value, Duration.Inf))
+```
+
+---
+| Different interpreter for testing
+
+```
+def testInterpreter(
+  dynamo: Map[PhotoId, DynamoRecord],
+  s3: Map[S3Key, Array[Byte]]
+) = new (Algebra ~> Id) {
+
+  def apply[A](op: Algebra[A]): A = op match {
+    case GetDynamoRecord(id) => dynamo(id)
+    case ReadContentFromS3(key) => s3(key)
+    case GenerateS3Key(_) => ???
+    case InsertDynamoRecord(_, _, _) => ???
+    case WriteContentToS3(_, _) => ???
+  }
+
+}
+```
+
+---
+| Free
+
+Separates description from execution
+
+Stack-safe
+
+Composable
+
+--
+
+Downsides: 
+
+Boilerplate/complexity
+
+Heap allocation -> GC pressure
+
+---
+| Tagless final
+
+(or "finally tagless")
+
+Achieves the same thing as Free, with a slightly different encoding
+
+---
+| Tagless final
+
+1. Define an algebra of your primitive operations
+
+2. No step 2, because DSL == algebra
+
+3. Write some programs in the DSL
+
+4. Write an interpreter
+
+5. Execute a program using the interpreter
+
+---
+| Algebra
+
+```
+trait Algebra[F[_]] {
+
+  def generateS3Key(id: PhotoId): F[S3Key]
+
+  def insertDynamoRecord(id: PhotoId, 
+                         s3key: S3Key, 
+                         createdBy: String): F[DynamoRecord]
+
+  def getDynamoRecord(id: PhotoId): F[DynamoRecord]
+
+  def writeContentToS3(key: S3Key, content: Array[Byte]): F[Unit]
+
+  def readContentFromS3(key: S3Key): F[Array[Byte]]
+
+}
+```
+
+---
+| Write some programs
+
+```
+class Programs[F[_]](alg: Algebra[F]) {
+  import alg._
+
+  def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
+    : F[Unit] =
+    for {
+      s3key <- generateS3Key(id)
+      _ <- insertDynamoRecord(id, s3key, createdBy)
+      _ <- writeContentToS3(s3key, content)
+    } yield ()
+
+  def getPhoto(id: PhotoId): F[Photo] =
+    for {
+      dynamoRecord <- getDynamoRecord(id)
+      content <- readContentFromS3(dynamoRecord.s3key)
+    } yield Photo(dynamoRecord.id, dynamoRecord.createdBy, content)
+
+}
+```
+
+---
+| Oops, we need some evidence of a Monad for F
+
+```
+trait Algebra[F[_]] {
+
+  implicit def M: Monad[F]
+
+  def generateS3Key(id: PhotoId): F[S3Key]
+
+  ...
+
+}
+```
+
+---
+| Interpreter
+
+```
+object FutureOfOptionInterpreter extends Algebra[FutureOfOption] {
+
+  implicit def M: Monad[FutureOfOption] = futureOfOptionMonad
+
+  def generateS3Key(id: PhotoId): FutureOfOption[S3Key] = {
+    println("Generating S3 key")
+    OptionT.pure(S3Key(s"photos/$id"))
+  }
+
+  ...
+
+}
+```
+
+---
+| Interpret a program
+
+```
+val prog = new Programs(tagless.FutureOfOptionInterpreter)
+
+val futureOfOption: FutureOfOption[Photo] = 
+  prog.saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
+
+println("RESULT: " + Await.result(futureOfOption.value, Duration.Inf))
+```
+
+---
+| Tagless final
+
+Separates description from execution
+
+Uses stack instead of heap
+
+Easy to compose algebras: just mixin more traits
+
+Simpler to understand than Free?
+
+---
+| Questions?
+
+Code and slides:
+
+github.com/cb372/free-vs-tagless-final

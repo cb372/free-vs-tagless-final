@@ -1,8 +1,8 @@
 package common
 
-case class PhotoId(val value: String) extends AnyVal
+case class PhotoId(value: String) extends AnyVal
 
-case class S3Key(val value: String) extends AnyVal
+case class S3Key(value: String) extends AnyVal
 
 case class Photo(id: PhotoId, createdBy: String, content: Array[Byte])
 
