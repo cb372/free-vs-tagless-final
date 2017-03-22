@@ -8,7 +8,7 @@ import scala.language.higherKinds
 /*
  * Examples of larger programs built up from the DSL primitives
  */
-class Programs[F[_]](alg: Algebra[F]) {
+class Programs[F[_]](alg: S3Alg[F] with DynamoAlg[F] with Monadic[F] ) {
   import alg._
 
   import cats.syntax.functor._

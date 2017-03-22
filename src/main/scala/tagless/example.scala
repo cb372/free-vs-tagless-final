@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 object Example extends App {
 
-  val prog = new Programs(FutureOfOptionInterpreter)
+  val prog = new Programs[FutureOfOption](FutureOfOptionInterpreter)
   
   val future: FutureOfOption[Photo] = 
     prog.saveAndThenGetPhoto(PhotoId("abc"), "Chris", "yolo".getBytes)
