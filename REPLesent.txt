@@ -400,12 +400,52 @@ println("RESULT: " + Await.result(futureOfOption.value, Duration.Inf))
 
 Separates description from execution
 
-Uses stack instead of heap
+Encodes program as an expression
 
-Easy to compose algebras: just mixin more traits
+Less boilerplate than Free (no lifting needed)
+
+Uses stack instead of heap
 
 Simpler to understand than Free?
 
+---
+| Composing DSLs
+
+We want the ability to build up programs from lots of little DSLs
+
+i.e. make our programs modular
+
+---
+| Composing DSLs using Free
+
+is too complicated to fit onto slides!
+
+The big idea: large DSL is a coproduct of smaller DSLs
+
+---
+| Other stuff you can do
+
+"Compile" to a low-level language before interpreting
+(works with both Free and finally tagless)
+
+Step through the program one operation at a time
+(only with Free)
+
+---
+| Stuff you can't do
+
+Introspect and transform the program before interpreting
+
+(you can do this with free applicatives)
+
+---
+| Recommendations
+
+Use Freestyle, an awesome new library for Free/tagless final
+http://frees.io/
+
+Read Adam Warski's blogpost "Free and tagless compared"
+https://softwaremill.com/free-tagless-compared-how-not-to-commit-to-monad-too-early
 ---
 | Questions?
 
