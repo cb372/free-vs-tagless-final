@@ -56,7 +56,8 @@ case class DynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
 What is a free monad?
 
 --
-It's just a left adjoint to a forgetful functor from the category of monads to the category of endofunctors.
+It's just a left adjoint to a forgetful functor 
+from the category of monads to the category of endofunctors.
 
 What's the problem?
 ---
@@ -204,7 +205,64 @@ def testInterpreter(
 
 }
 ```
+---
+| Testing
 
+```
+it should "fetch a photo from Dynamo and S3" in {
+  val photoId = PhotoId("abc")
+  val s3Key = S3Key("photos/abc")
+  val bytes = "yolo".getBytes
+
+  val interpreter = testInterpreter(
+    dynamo = Map(photoId -> DynamoRecord(...)),
+    s3 = Map(s3Key -> bytes)
+  )
+
+  getPhoto(photoId).foldMap(interpreter) shouldBe 
+    Photo(photoId, "Chris", bytes)
+}
+```
+
+---
+| More interesting test
+
+```
+type Log[A] = Writer[List[String], A]
+
+def loggingInterpreter(
+  dynamo: Map[PhotoId, DynamoRecord],
+  s3: Map[S3Key, Array[Byte]]
+) = new (Algebra ~> Log) {
+  def apply[A](op: Algebra[A]): Log[A] = op match {
+    case GetDynamoRecord(id) => Writer(
+      List(s"Get Dynamo record with ID ${id.value}"),
+      dynamo(id)
+    )
+    ...
+  }
+}
+```
+
+---
+
+```
+it should "perform the operations I expect" in {
+  val interpreter = loggingInterpreter(
+    dynamo = ...,
+    s3 = ...
+  )
+
+  val (logs, result) = getPhoto(photoId)
+    .foldMap(interpreter) 
+    .run
+  result shouldBe Photo(photoId, "Chris", bytes)
+  logs shouldBe List(
+    "Get Dynamo record with ID abc",
+    "Get S3 file with key photos/abc"
+  )
+}
+```
 ---
 | Free
 
@@ -293,7 +351,7 @@ class Programs[F[_]](alg: Algebra[F]) {
 | Oops, we need some evidence of a Monad for F
 
 ```
-class Programs[F[_]](alg: Algebra[F]) {
+class Programs[F[_] : Monad](alg: Algebra[F]) {
   import alg._
 
   def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
