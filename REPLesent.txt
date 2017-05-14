@@ -191,13 +191,13 @@ println("RESULT: " + Await.result(futureOfOption.value, Duration.Inf))
 
 ```
 def testInterpreter(
-  dynamo: Map[PhotoId, DynamoRecord],
-  s3: Map[S3Key, Array[Byte]]
+  fakeDynamo: Map[PhotoId, DynamoRecord],
+  fakeS3: Map[S3Key, Array[Byte]]
 ) = new (Algebra ~> Id) {
 
   def apply[A](op: Algebra[A]): A = op match {
-    case GetDynamoRecord(id) => dynamo(id)
-    case ReadContentFromS3(key) => s3(key)
+    case GetDynamoRecord(id) => fakeDynamo(id)
+    case ReadContentFromS3(key) => fakeS3(key)
     case GenerateS3Key(_) => ???
     case InsertDynamoRecord(_, _, _) => ???
     case WriteContentToS3(_, _) => ???
@@ -215,8 +215,8 @@ it should "fetch a photo from Dynamo and S3" in {
   val bytes = "yolo".getBytes
 
   val interpreter = testInterpreter(
-    dynamo = Map(photoId -> DynamoRecord(...)),
-    s3 = Map(s3Key -> bytes)
+    fakeDynamo = Map(photoId -> DynamoRecord(...)),
+    fakeS3 = Map(s3Key -> bytes)
   )
 
   getPhoto(photoId).foldMap(interpreter) shouldBe 
@@ -235,10 +235,12 @@ def loggingInterpreter(
   s3: Map[S3Key, Array[Byte]]
 ) = new (Algebra ~> Log) {
   def apply[A](op: Algebra[A]): Log[A] = op match {
+
     case GetDynamoRecord(id) => Writer(
       List(s"Get Dynamo record with ID ${id.value}"),
       dynamo(id)
     )
+
     ...
   }
 }
@@ -409,18 +411,69 @@ Uses stack instead of heap
 Simpler to understand than Free?
 
 ---
-| Composing DSLs
+| Modularity
 
 We want the ability to build up programs from lots of little DSLs
 
-i.e. make our programs modular
+e.g. separate algebras for S3 and Dynamo operations
+
+---
+| Composing DSLs using tagless final
+
+Split algebra into multiple traits
+
+Split interpreters correspondingly
+
+Pass multiple algebras into program
+
+---
+| Split algebras
+
+```
+trait S3Alg[F[_]] {
+  def readContentFromS3(key: S3Key): F[Array[Byte]]
+  ...
+}
+
+trait DynamoAlg[F[_]] {
+  def getDynamoRecord(id: PhotoId): F[DynamoRecord]
+  ...
+}
+```
+
+---
+| Split interpreters
+
+```
+object S3Interpreter extends S3Alg[FutureOfOption] {
+  ...
+}
+
+object DynamoInterpreter extends DynamoAlg[FutureOfOption] {
+  ...
+}
+```
+
+---
+| Pass in the algebras your program needs
+
+```
+class Programs[F[_] : Monad](
+  s3: S3Alg[F], 
+  dynamo: DynamoAlg[F]
+) {
+
+  import s3._, dynamo._
+  ...
+}
+```
 
 ---
 | Composing DSLs using Free
 
 is too complicated to fit onto slides!
 
-The big idea: large DSL is a coproduct of smaller DSLs
+The big idea: parent DSL is a coproduct of child DSLs
 
 ---
 | Other stuff you can do
@@ -445,7 +498,8 @@ Use Freestyle, an awesome new library for Free/tagless final
 http://frees.io/
 
 Read Adam Warski's blogpost "Free and tagless compared"
-https://softwaremill.com/free-tagless-compared-how-not-to-commit-to-monad-too-early
+(link doesn't fit on slide)
+
 ---
 | Questions?
 
