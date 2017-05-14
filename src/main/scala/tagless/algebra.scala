@@ -2,8 +2,6 @@ package tagless
 
 import common._
 
-import cats.Monad
-
 import scala.language.higherKinds
 
 /*
@@ -12,8 +10,6 @@ import scala.language.higherKinds
  * `F` is the monadic effect that will be chosen by the interpreter.
  */
 trait Algebra[F[_]] {
-
-  implicit def M: Monad[F]
 
   def generateS3Key(id: PhotoId): F[S3Key]
 

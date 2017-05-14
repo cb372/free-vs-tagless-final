@@ -5,6 +5,7 @@ import common._
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
+import cats.instances.future._
 
 /**
  * An example of executing a program using an interpreter

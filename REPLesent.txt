@@ -293,11 +293,16 @@ class Programs[F[_]](alg: Algebra[F]) {
 | Oops, we need some evidence of a Monad for F
 
 ```
-trait Algebra[F[_]] {
+class Programs[F[_]](alg: Algebra[F]) {
+  import alg._
 
-  implicit def M: Monad[F]
-
-  def generateS3Key(id: PhotoId): F[S3Key]
+  def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
+    : F[Unit] =
+    for {
+      s3key <- generateS3Key(id)
+      _ <- insertDynamoRecord(id, s3key, createdBy)
+      _ <- writeContentToS3(s3key, content)
+    } yield ()
 
   ...
 
@@ -309,8 +314,6 @@ trait Algebra[F[_]] {
 
 ```
 object FutureOfOptionInterpreter extends Algebra[FutureOfOption] {
-
-  implicit def M: Monad[FutureOfOption] = futureOfOptionMonad
 
   def generateS3Key(id: PhotoId): FutureOfOption[S3Key] = {
     println("Generating S3 key")

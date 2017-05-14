@@ -2,7 +2,6 @@ package tagless
 
 import common._
 
-import cats.Monad
 import cats.data.OptionT
 import cats.instances.future._
 
@@ -13,8 +12,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * An example interpreter with `Future` as its effect.
  */
 object FutureOfOptionInterpreter extends Algebra[FutureOfOption] {
-
-  implicit def M: Monad[FutureOfOption] = futureOfOptionMonad
 
   def generateS3Key(id: PhotoId): FutureOfOption[S3Key] = {
     println("Generating S3 key")
