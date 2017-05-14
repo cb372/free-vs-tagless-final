@@ -51,6 +51,15 @@ case class Photo(id: PhotoId, createdBy: String, content: Array[Byte])
 case class DynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
 ```
 ---
+| Free monads
+
+What is a free monad?
+
+--
+It's just a left adjoint to a forgetful functor from the category of monads to the category of endofunctors.
+
+What's the problem?
+---
 | Free
 
 --
@@ -91,22 +100,22 @@ case class ReadContentFromS3(key: S3Key) extends Algebra[Array[Byte]]
 | DSL
 
 ```
-type Op[A] = Free[Algebra, A]
+type Program[A] = Free[Algebra, A]
 
-def generateS3Key(id: PhotoId): Op[S3Key] =
+def generateS3Key(id: PhotoId): Program[S3Key] =
   Free.liftF(GenerateS3Key(id))
 
 def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String)
-  : Op[DynamoRecord] = 
+  : Program[DynamoRecord] = 
   Free.liftF(InsertDynamoRecord(id, s3key, createdBy))
 
-def getDynamoRecord(id: PhotoId): Op[DynamoRecord] = 
+def getDynamoRecord(id: PhotoId): Program[DynamoRecord] = 
   Free.liftF(GetDynamoRecord(id))
 
-def writeContentToS3(key: S3Key, content: Array[Byte]): Op[Unit] = 
+def writeContentToS3(key: S3Key, content: Array[Byte]): Program[Unit] = 
   Free.liftF(WriteContentToS3(key, content))
 
-def readContentFromS3(key: S3Key): Op[Array[Byte]] = 
+def readContentFromS3(key: S3Key): Program[Array[Byte]] = 
   Free.liftF(ReadContentFromS3(key))
 ```
 
@@ -114,14 +123,14 @@ def readContentFromS3(key: S3Key): Op[Array[Byte]] =
 | Write some programs
 
 ```
-def getPhoto(id: PhotoId): Op[Photo] =
+def getPhoto(id: PhotoId): Program[Photo] =
   for {
     dynamoRecord <- getDynamoRecord(id)
     content <- readContentFromS3(dynamoRecord.s3key)
   } yield Photo(dynamoRecord.id, dynamoRecord.createdBy, content)
 
 def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
-  : Op[Unit] =
+  : Program[Unit] =
   for {
     s3key <- generateS3Key(id)
     _ <- insertDynamoRecord(id, s3key, createdBy)
@@ -135,7 +144,7 @@ def savePhoto(id: PhotoId, createdBy: String, content: Array[Byte])
 ```
 def saveAndThenGetPhoto(id: PhotoId, 
                         createdBy: String, 
-                        content: Array[Byte]): Op[Photo] =
+                        content: Array[Byte]): Program[Photo] =
   for {
     _ <- savePhoto(id, createdBy, content)
     photo <- getPhoto(id)
@@ -201,6 +210,8 @@ def testInterpreter(
 
 Separates description from execution
 
+Encodes program as a value
+
 Stack-safe
 
 Composable
@@ -216,7 +227,7 @@ Heap allocation -> GC pressure
 ---
 | Tagless final
 
-(or "finally tagless")
+(or "final tagless" or "finally tagless")
 
 Achieves the same thing as Free, with a slightly different encoding
 

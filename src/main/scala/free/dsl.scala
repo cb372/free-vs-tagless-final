@@ -13,21 +13,21 @@ import cats.free.Free
  */
 object DSL {
 
-  type Op[A] = Free[Algebra, A]
+  type Program[A] = Free[Algebra, A]
 
-  def generateS3Key(id: PhotoId): Op[S3Key] =
+  def generateS3Key(id: PhotoId): Program[S3Key] =
     Free.liftF(GenerateS3Key(id))
 
-  def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String): Op[DynamoRecord] = 
+  def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String): Program[DynamoRecord] = 
     Free.liftF(InsertDynamoRecord(id, s3key, createdBy))
 
-  def getDynamoRecord(id: PhotoId): Op[DynamoRecord] = 
+  def getDynamoRecord(id: PhotoId): Program[DynamoRecord] = 
     Free.liftF(GetDynamoRecord(id))
 
-  def writeContentToS3(key: S3Key, content: Array[Byte]): Op[Unit] = 
+  def writeContentToS3(key: S3Key, content: Array[Byte]): Program[Unit] = 
     Free.liftF(WriteContentToS3(key, content))
 
-  def readContentFromS3(key: S3Key): Op[Array[Byte]] = 
+  def readContentFromS3(key: S3Key): Program[Array[Byte]] = 
     Free.liftF(ReadContentFromS3(key))
 
 }
