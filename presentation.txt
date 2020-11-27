@@ -1,4 +1,4 @@
-val pres = REPLesent(80, 25, slideCounter=true, slideTotal=true, intp=$intp)
+val pres = REPLesent(80, 25, slideCounter=true, slideTotal=true)
 import pres._
 
 import cats.~>

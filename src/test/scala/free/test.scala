@@ -8,8 +8,10 @@ import cats.data.Writer
 import cats.instances.list._
 
 import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class FreeTest extends FlatSpec with Matchers {
+class FreeTest extends AnyFlatSpec with Matchers {
 
   import Programs._
 
