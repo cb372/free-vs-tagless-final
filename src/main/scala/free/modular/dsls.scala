@@ -2,11 +2,12 @@ package free.modular
 
 import common._
 
-import cats.free.{Free, Inject}
+import cats.InjectK
+import cats.free.Free
 
 object DSL {
 
-  class DynamoOps[F[_]](implicit I: Inject[DynamoAlg, F]) {
+  class DynamoOps[F[_]](implicit I: InjectK[DynamoAlg, F]) {
 
     def insertDynamoRecord(id: PhotoId, s3key: S3Key, createdBy: String): Free[F, DynamoRecord] = 
       Free.inject[DynamoAlg, F](InsertDynamoRecord(id, s3key, createdBy))
@@ -17,10 +18,10 @@ object DSL {
   }
 
   object DynamoOps {
-    implicit def dynamoOps[F[_]](implicit I: Inject[DynamoAlg, F]): DynamoOps[F] = new DynamoOps[F]
+    implicit def dynamoOps[F[_]](implicit I: InjectK[DynamoAlg, F]): DynamoOps[F] = new DynamoOps[F]
   }
 
-  class S3Ops[F[_]](implicit I: Inject[S3Alg, F]) {
+  class S3Ops[F[_]](implicit I: InjectK[S3Alg, F]) {
 
     def generateS3Key(id: PhotoId): Free[F, S3Key] =
       Free.inject[S3Alg, F](GenerateS3Key(id))
@@ -34,7 +35,7 @@ object DSL {
   }
 
   object S3Ops {
-    implicit def s3Ops[F[_]](implicit I: Inject[S3Alg, F]): S3Ops[F] = new S3Ops[F]
+    implicit def s3Ops[F[_]](implicit I: InjectK[S3Alg, F]): S3Ops[F] = new S3Ops[F]
   }
 
 

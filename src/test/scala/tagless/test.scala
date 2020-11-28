@@ -4,8 +4,10 @@ import common._
 
 import cats._
 import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class TaglessFinalTest extends FlatSpec with Matchers {
+class TaglessFinalTest extends AnyFlatSpec with Matchers {
 
   def testAlgebra(
     dynamo: Map[PhotoId, DynamoRecord],
